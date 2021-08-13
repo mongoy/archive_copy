@@ -3,11 +3,11 @@
 *.pot
 *.pyc
 __pycache__
-dst/
-src/
+dst_dir/
+src_dir/
 config.json
 config.txt
-
+*.zip
 # Backup files # 
 *.bak 
 
