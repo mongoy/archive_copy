@@ -9,6 +9,7 @@ src_dir/
 config.json
 config.txt
 prob.py
+example.log
 *.zip
 # Backup files # 
 *.bak 

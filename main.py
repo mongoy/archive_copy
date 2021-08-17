@@ -1,5 +1,5 @@
 """
-Архивация и копирование
+Архивация и перенос
 """
 import json
 import os
@@ -7,6 +7,7 @@ import zipfile
 import datetime
 import time
 from progress.bar import IncrementalBar
+import logging
 
 
 def check_dir(path_dir):
@@ -15,23 +16,24 @@ def check_dir(path_dir):
     Если файл, то выводит его размер, даты создания, открытия и модификации.
     Если каталог, выводит список вложенных в него файлов и каталогов.
     :return:
+    status, log_text
     """
     status = 0
     if os.path.exists(path_dir):
+        log_text = ""
         if os.path.isfile(path_dir):
-            print(f'ФАЙЛ: {path_dir}')
-            print('Размер:', round(os.path.getsize(path_dir) / 1024, 3), 'Кб')
-            print('Дата создания:', datetime.datetime.fromtimestamp(int(os.path.getctime(path_dir))))
-            print('Дата последнего открытия:', datetime.datetime.fromtimestamp(int(os.path.getatime(path_dir))))
-            print('Дата последнего изменения:', datetime.datetime.fromtimestamp(int(os.path.getmtime(path_dir))))
+            log_text += f'ФАЙЛ: {path_dir}\n\t'
+            log_text += f'Размер:{round(os.path.getsize(path_dir) / 1024, 3)} Кб\n\t'
+            log_text += f'Дата создания:{datetime.datetime.fromtimestamp(int(os.path.getctime(path_dir)))}\n\t'
+            log_text += f'Дата последнего открытия:{datetime.datetime.fromtimestamp(int(os.path.getatime(path_dir)))}\n\t'
+            log_text += f'Дата последнего изменения:{datetime.datetime.fromtimestamp(int(os.path.getmtime(path_dir)))}\n'
             status = 2
         elif os.path.isdir(path_dir):
-            print(f'КАТАЛОГ: {path_dir}')
-            # print('Список объектов в нем: ', os.listdir(path_dir))
+            log_text = f'КАТАЛОГ: {path_dir}'
             status = 1
     else:
-        print('Объект не найден')
-    return status
+        log_text = 'Объект не найден'
+    return status, log_text
 
 
 def archive_directory(src, dst):
@@ -45,34 +47,38 @@ def archive_directory(src, dst):
             # print(root, dirs, files)
             bar = IncrementalBar("Заархивировано файлов", max=len(files))
             for file in files:
-                bar.next()
                 zf.write(os.path.join(root, file))
+                bar.next()
                 # print(dirs)
                 # time.sleep(1)
             bar.finish()
-    return
+    return arch_file
 
 
 def main():
+    # create log file
+    logging.basicConfig(filename='archive_buh.log', filemode='w', level=logging.INFO)
     start_time = time.monotonic()
+    logging.info(f"Запуск: {datetime.datetime.now()}")
     # наличие файла конфигурации
-    if check_dir("config.json") == 2:
+    cfg = check_dir("config.json")
+    if cfg[0] == 2:
+        logging.info(cfg[1])
         with open("config.json", "r", encoding="utf-8") as conf:
             text = json.load(conf)  # dict
             src, dst = text.values()  #
-            print(src, dst)
-        # наличие директорий
-        if (check_dir(src) == 1) and (check_dir(dst) == 1):
+            logging.info(f"{src}; {dst}")
+        # наличие директори источника
+        cfg = check_dir(src)
+        if cfg[0] == 1:  # and (check_dir(dst) == 1):
             # создание архива
-            archive_directory(src, dst)
-            print(f"Время архивации - {time.monotonic() - start_time} сек.")
+            arch_file = archive_directory(src, dst)
+            logging.info(f"Время архивации: {time.monotonic() - start_time} сек.")
+            logging.info(f"Местоположение архива: {arch_file}")
         else:
-            print(f"Проверьте наличие директорий: {src, dst}")
+            logging.info(f"Проверьте наличие директорий: {src, dst}")
     else:
-        print("Проверьте наличие файла конфигурации - config.json")
-
-    # archive_directory()
-    # copy_zip_file()
+        logging.info("Проверьте наличие файла конфигурации: config.json")
 
 
 if __name__ == '__main__':
